@@ -30,3 +30,4 @@ attendance-system/
 │
 └── ui/
     ├── pages.py
+cách chạy : cd source_code/ python -m streamlit run main.py
