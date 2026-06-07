@@ -10,7 +10,8 @@ Chức năng:
 - Chuyển đối tượng thành chuỗi để lưu file
 - Đọc dữ liệu từ file
 """
-def __init__(self, student_id: str, full_name: str):
+class Student:
+    def __init__(self, student_id: str, full_name: str):
         # Tạo đối tượng sinh viên với 2 thuộc tính được yêu cầu
         self.student_id = student_id.strip().upper()
         self.full_name = full_name.strip().title()
