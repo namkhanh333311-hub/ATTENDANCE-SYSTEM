@@ -45,13 +45,19 @@ def warning_students(records, total_sessions):
     warnings = []
 
     for sid, absent_count in absent_map.items():
-        if check_warning(absent_count, total_sessions):
+
+        student_total = total_sessions.get(sid, 0)
+
+        if student_total > 0 and check_warning(
+            absent_count,
+            student_total
+        ):
             warnings.append(
                 (
                     sid,
                     calculate_absence_rate(
                         absent_count,
-                        total_sessions
+                        student_total
                     )
                 )
             )

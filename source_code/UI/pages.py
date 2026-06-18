@@ -18,6 +18,7 @@ from services.file_manager import save_students, save_classes, save_attendance
 from services.report import attendance_statistics, absence_statistics, warning_students
 from structures.hashtable import HashTable
 from algorithms.merge_sort import merge_sort
+from algorithms.heap_sort import heap_sort
 
 
 # ─────────────────────────────────────────────
@@ -348,19 +349,50 @@ def render_bao_cao():
         rows_sorted = merge_sort(rows, key=lambda x: -x["Số buổi vắng"])
         st.dataframe(pd.DataFrame(rows_sorted), use_container_width=True)
 
+    # ── Top sinh viên vắng nhiều nhất (Heap Sort) ──
+    st.markdown("---")
+    st.subheader("🔥 Top 5 sinh viên vắng nhiều nhất (Heap Sort)")
+    if vang_map:
+        ht = _build_student_hashtable()
+        heap_input = []
+        for sid, count in vang_map.items():
+            sv = ht.search(sid)
+            ten = sv.full_name if sv else sid
+            heap_input.append((count, sid, ten))
+
+        # heap_sort tự cài đặt (dựa trên MaxHeap) trả về danh sách giảm dần theo count
+        top_sorted = heap_sort(heap_input)
+        top5 = top_sorted[:5]
+
+        rows_top = [
+            {"Hạng": i + 1, "Mã SV": sid, "Họ Tên": ten, "Số buổi vắng": count}
+            for i, (count, sid, ten) in enumerate(top5)
+        ]
+        st.dataframe(pd.DataFrame(rows_top), use_container_width=True)
+    else:
+        st.info("Chưa có dữ liệu vắng để xếp hạng.")
+
     # ── Danh sách cảnh báo cấm thi ──
     st.markdown("---")
     st.subheader("⚠️ Danh sách sinh viên có nguy cơ cấm thi (vắng > 20%)")
 
-    # Tính tổng số buổi của từng lớp trong dữ liệu lọc
+    # Tổng số buổi của từng lớp (trong dữ liệu đang lọc)
     buoi_theo_lop: dict = {}
     for r in records:
         if r.class_id not in buoi_theo_lop:
             buoi_theo_lop[r.class_id] = set()
         buoi_theo_lop[r.class_id].add(r.date)
-    total_sessions = sum(len(v) for v in buoi_theo_lop.values())
 
-    warnings = warning_students(records, total_sessions)
+    # Tổng số buổi của RIÊNG từng sinh viên = tổng buổi của các lớp mà SV đó đang học
+    # (không cộng dồn buổi của lớp mà SV không theo học, tránh pha loãng tỷ lệ vắng)
+    sessions_per_student = {}
+    for sid in vang_map.keys():
+        lop_cua_sv = [c.class_id for c in st.session_state.classes if sid in c.get_all_students()]
+        sessions_per_student[sid] = sum(
+            len(buoi_theo_lop.get(cid, set())) for cid in lop_cua_sv
+        )
+
+    warnings = warning_students(records, sessions_per_student)
     if warnings:
         ht = _build_student_hashtable()
         rows_warn = []
